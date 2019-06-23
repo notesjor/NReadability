@@ -32,23 +32,34 @@ namespace NReadability
 {
   public class UrlFetcher : IUrlFetcher
   {
+    private const int _bufferSize = 8192;
+
+    private static readonly Encoding _DefaultFallbackEncoding = Encoding.UTF8;
+
+    private static readonly Regex _MetaTagRegex = new Regex("<meta[^>]+content=\"[^\"]*charset=(?<charset>[^\"]+)\"",
+                                                            RegexOptions.Compiled | RegexOptions.IgnoreCase);
+
+    private readonly Encoding _fallbackEncoding;
+    private readonly CookieAwareWebClient _webClient;
+
+    #region IUrlFetcher Members
+
+    public string Fetch(string url)
+    {
+      return DownloadString(url);
+    }
+
+    #endregion
+
     #region Nested types
 
     private enum CompressionAlgorithm
     {
       GZip,
-      Deflate,
+      Deflate
     }
 
     #endregion
-
-    private const int BufferSize = 8192;
-
-    private static readonly Encoding _DefaultFallbackEncoding = Encoding.UTF8;
-    private static readonly Regex _MetaTagRegex = new Regex("<meta[^>]+content=\"[^\"]*charset=(?<charset>[^\"]+)\"", RegexOptions.Compiled | RegexOptions.IgnoreCase);
-
-    private readonly Encoding _fallbackEncoding;
-    private readonly CookieAwareWebClient _webClient;
 
     #region Constructor(s)
 
@@ -57,7 +68,8 @@ namespace NReadability
       _fallbackEncoding = fallbackEncoding ?? _DefaultFallbackEncoding;
 
       _webClient = new CookieAwareWebClient();
-      _webClient.Headers.Add("User-Agent", "Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.31 (KHTML, like Gecko) Chrome/26.0.1410.64 Safari/537.31");
+      _webClient.Headers.Add("User-Agent",
+                             "Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.31 (KHTML, like Gecko) Chrome/26.0.1410.64 Safari/537.31");
       _webClient.Headers.Add("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8");
       _webClient.Headers.Add("Accept-Encoding", "gzip,deflate");
     }
@@ -83,25 +95,16 @@ namespace NReadability
 
     #endregion
 
-    #region IUrlFetcher Members
-
-    public string Fetch(string url)
-    {
-      return DownloadString(url);
-    }
-
-    #endregion
-
     #region Private helper methods
 
     private static Encoding GetEncodingFromMetaTag(byte[] responseBytes)
     {
-      string responseText = Encoding.ASCII.GetString(responseBytes);
-      Match match = _MetaTagRegex.Match(responseText);
+      var responseText = Encoding.ASCII.GetString(responseBytes);
+      var match = _MetaTagRegex.Match(responseText);
 
       if (match.Success)
       {
-        string charset = match.Groups["charset"].Value;
+        var charset = match.Groups["charset"].Value;
 
         try
         {
@@ -136,18 +139,15 @@ namespace NReadability
 
       try
       {
-        byte[] buffer = new byte[BufferSize];
+        var buffer = new byte[_bufferSize];
 
         using (var outputMemoryStream = new MemoryStream())
         {
           while (true)
           {
-            int bytesRead = decompressingStream.Read(buffer, 0, buffer.Length);
+            var bytesRead = decompressingStream.Read(buffer, 0, buffer.Length);
 
-            if (bytesRead <= 0)
-            {
-              break;
-            }
+            if (bytesRead <= 0) break;
 
             outputMemoryStream.Write(buffer, 0, bytesRead);
           }
@@ -163,33 +163,24 @@ namespace NReadability
 
     private string MakeRequest(string url, Func<byte[]> makeRequestFunc)
     {
-      if (string.IsNullOrEmpty(url))
-      {
-        throw new ArgumentNullException("url");
-      }
+      if (string.IsNullOrEmpty(url)) throw new ArgumentNullException(nameof(url));
 
-      byte[] responseBytes = makeRequestFunc();
-      string contentEncoding = _webClient.ResponseHeaders["Content-Encoding"];
+      var responseBytes = makeRequestFunc();
+      var contentEncoding = _webClient.ResponseHeaders["Content-Encoding"];
 
       if (!string.IsNullOrEmpty(contentEncoding))
       {
         contentEncoding = contentEncoding.ToLower();
 
         if (contentEncoding.Contains("gzip"))
-        {
           responseBytes = Decompress(responseBytes, CompressionAlgorithm.GZip);
-        }
         else if (contentEncoding.Contains("deflate"))
-        {
           responseBytes = Decompress(responseBytes, CompressionAlgorithm.Deflate);
-        }
         else
-        {
           throw new NotSupportedException("Unsupported content encoding: " + contentEncoding + ".");
-        }
       }
 
-      Encoding encoding = GuessEncoding(_webClient.ResponseHeaders, responseBytes);
+      var encoding = GuessEncoding(_webClient.ResponseHeaders, responseBytes);
 
       return encoding.GetString(responseBytes);
     }
@@ -198,24 +189,17 @@ namespace NReadability
     {
       try
       {
-        if (headers == null)
-        {
-          return _fallbackEncoding;
-        }
+        if (headers == null) return _fallbackEncoding;
 
-        string contentType = headers[HttpResponseHeader.ContentType];
+        var contentType = headers[HttpResponseHeader.ContentType];
 
-        if (string.IsNullOrEmpty(contentType))
-        {
-          return _fallbackEncoding;
-        }
+        if (string.IsNullOrEmpty(contentType)) return _fallbackEncoding;
 
         Encoding resultEncoding = null;
-        string[] splittedContentType = contentType.ToLower(CultureInfo.InvariantCulture).Split(new[] { ';', '=', ' ' });
-        bool isCharset = false;
+        var splittedContentType = contentType.ToLower(CultureInfo.InvariantCulture).Split(';', '=', ' ');
+        var isCharset = false;
 
-        foreach (string s in splittedContentType)
-        {
+        foreach (var s in splittedContentType)
           if (s == "charset")
           {
             isCharset = true;
@@ -233,16 +217,13 @@ namespace NReadability
 
             break;
           }
-        }
 
         return resultEncoding ?? (GetEncodingFromMetaTag(responseBytes) ?? _fallbackEncoding);
       }
       catch (Exception exception)
       {
-        if (((exception is ThreadAbortException) || (exception is StackOverflowException)) || (exception is OutOfMemoryException))
-        {
-          throw;
-        }
+        if (exception is ThreadAbortException || exception is StackOverflowException ||
+            exception is OutOfMemoryException) throw;
       }
 
       return _fallbackEncoding;

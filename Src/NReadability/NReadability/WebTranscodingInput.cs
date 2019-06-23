@@ -8,20 +8,17 @@ namespace NReadability
 
     public WebTranscodingInput(string url)
     {
-      if (string.IsNullOrEmpty(url))
-      {
-        throw new ArgumentException("Argument can't be null nor empty.", "url");
-      }
+      if (string.IsNullOrEmpty(url)) throw new ArgumentException("Argument can't be null nor empty.", nameof(url));
 
       Url = url;
     }
 
-    public string Url { get; private set; }
+    public string Url { get; }
 
     public DomSerializationParams DomSerializationParams
     {
-      get { return _domSerializationParams ?? (_domSerializationParams = DomSerializationParams.CreateDefault()); }
-      set { _domSerializationParams = value; }
+      get => _domSerializationParams ?? (_domSerializationParams = DomSerializationParams.CreateDefault());
+      set => _domSerializationParams = value;
     }
   }
 }

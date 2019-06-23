@@ -31,12 +31,7 @@ namespace NReadability
 
     public ChildNodesTraverser(Action<XNode> childNodeVisitor)
     {
-      if (childNodeVisitor == null)
-      {
-        throw new ArgumentNullException("childNodeVisitor");
-      }
-
-      _childNodeVisitor = childNodeVisitor;
+      _childNodeVisitor = childNodeVisitor ?? throw new ArgumentNullException(nameof(childNodeVisitor));
     }
 
     #endregion
@@ -46,11 +41,9 @@ namespace NReadability
     public void Traverse(XNode node)
     {
       if (!(node is XContainer))
-      {
         throw new ApplicationException("The node must be an XContainer in order to traverse its children.");
-      }
 
-      var childNode = ((XContainer)node).FirstNode;
+      var childNode = ((XContainer) node).FirstNode;
 
       while (childNode != null)
       {

@@ -28,33 +28,23 @@ namespace NReadability
   {
     private static readonly Encoding _DefaultEncoding = Encoding.UTF8;
 
-    private readonly Encoding _encoding;
+    #region Properties
+
+    public override Encoding Encoding { get; }
+
+    #endregion
 
     #region Constructor(s)
 
     public EncodedStringWriter(StringBuilder sb, Encoding encoding)
       : base(sb)
     {
-      if (encoding == null)
-      {
-        throw new ArgumentNullException("encoding");
-      }
-
-      _encoding = encoding;
+      Encoding = encoding ?? throw new ArgumentNullException(nameof(encoding));
     }
 
     public EncodedStringWriter(StringBuilder sb)
       : this(sb, _DefaultEncoding)
     {
-    }
-
-    #endregion
-
-    #region Properties
-
-    public override Encoding Encoding
-    {
-      get { return _encoding; }
     }
 
     #endregion

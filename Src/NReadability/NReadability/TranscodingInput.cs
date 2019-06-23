@@ -9,21 +9,19 @@ namespace NReadability
     public TranscodingInput(string htmlContent)
     {
       if (string.IsNullOrEmpty(htmlContent))
-      {
-        throw new ArgumentException("Argument can't be null nor empty.", "htmlContent");
-      }
+        throw new ArgumentException("Argument can't be null nor empty.", nameof(htmlContent));
 
       HtmlContent = htmlContent;
     }
 
-    public string HtmlContent { get; private set; }
+    public string HtmlContent { get; }
 
     public string Url { get; set; }
 
     public DomSerializationParams DomSerializationParams
     {
-      get { return _domSerializationParams ?? (_domSerializationParams = DomSerializationParams.CreateDefault()); }
-      set { _domSerializationParams = value; }
+      get => _domSerializationParams ?? (_domSerializationParams = DomSerializationParams.CreateDefault());
+      set => _domSerializationParams = value;
     }
   }
 }

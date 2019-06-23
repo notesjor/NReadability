@@ -25,14 +25,14 @@ using System.Xml.Linq;
 namespace NReadability
 {
   /// <summary>
-  /// A class for serializing a DOM to string.
+  ///   A class for serializing a DOM to string.
   /// </summary>
   public class SgmlDomSerializer
   {
     #region Public methods
 
     /// <summary>
-    /// Serializes given DOM (System.Xml.Linq.XDocument object) to a string.
+    ///   Serializes given DOM (System.Xml.Linq.XDocument object) to a string.
     /// </summary>
     /// <param name="document">System.Xml.Linq.XDocument instance containing the DOM to be serialized.</param>
     /// <param name="domSerializationParams">Contains parameters that modify the behaviour of the output serialization.</param>
@@ -45,15 +45,10 @@ namespace NReadability
       {
         var documentRoot = document.Root;
 
-        if (documentRoot == null)
-        {
-          throw new ArgumentException("The document must have a root.");
-        }
+        if (documentRoot == null) throw new ArgumentException("The document must have a root.");
 
-        if (documentRoot.Name == null || !"html".Equals(documentRoot.Name.LocalName, StringComparison.OrdinalIgnoreCase))
-        {
-          throw new ArgumentException("The document's root must be an html element.");
-        }
+        if (!"html".Equals(documentRoot.Name.LocalName, StringComparison.OrdinalIgnoreCase)
+        ) throw new ArgumentException("The document's root must be an html element.");
 
         // add <head> element if not present
         var headElement = documentRoot.GetChildrenByTagName("head").FirstOrDefault();
@@ -67,18 +62,19 @@ namespace NReadability
         ProcessMetaElements(headElement, domSerializationParams);
       }
 
-      string result = document.ToString(domSerializationParams.PrettyPrint ? SaveOptions.None : SaveOptions.DisableFormatting);
+      var result =
+        document.ToString(domSerializationParams.PrettyPrint ? SaveOptions.None : SaveOptions.DisableFormatting);
 
       if (!domSerializationParams.DontIncludeDocTypeMetaElement)
-      {
-        result = "<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Transitional//EN\"\r\n\"http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd\">\r\n" + result;
-      }
+        result =
+          "<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Transitional//EN\"\r\n\"http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd\">\r\n" +
+          result;
 
       return result;
     }
 
     /// <summary>
-    /// Serializes given DOM (System.Xml.Linq.XDocument object) to a string.
+    ///   Serializes given DOM (System.Xml.Linq.XDocument object) to a string.
     /// </summary>
     /// <param name="document">System.Xml.Linq.XDocument instance containing the DOM to be serialized.</param>
     /// <returns>Serialized representation of the DOM.</returns>
@@ -98,63 +94,58 @@ namespace NReadability
       ProcessMetaGeneratorElement(headElement, domSerializationParams);
     }
 
-    private static void ProcessMetaContentTypeElement(XElement headElement, DomSerializationParams domSerializationParams)
+    private static void ProcessMetaContentTypeElement(XElement headElement,
+                                                      DomSerializationParams domSerializationParams)
     {
       if (!domSerializationParams.DontIncludeContentTypeMetaElement)
       {
-        XElement metaContentTypeElement =
+        var metaContentTypeElement =
           (from metaElement in headElement.GetChildrenByTagName("meta")
-           where "content-type".Equals(metaElement.GetAttributeValue("http-equiv", ""), StringComparison.OrdinalIgnoreCase)
+           where "content-type".Equals(metaElement.GetAttributeValue("http-equiv", ""),
+                                       StringComparison.OrdinalIgnoreCase)
            select metaElement).FirstOrDefault();
 
         // remove meta 'http-equiv' element if present
-        if (metaContentTypeElement != null)
-        {
-          metaContentTypeElement.Remove();
-        }
+        metaContentTypeElement?.Remove();
 
         // add <meta name="http-equiv" ... /> element
         metaContentTypeElement =
           new XElement(
-            XName.Get("meta", headElement.Name != null ? (headElement.Name.NamespaceName ?? "") : ""),
-            new XAttribute("http-equiv", "Content-Type"),
-            new XAttribute("content", "text/html; charset=utf-8"));
+                       XName.Get("meta", headElement.Name.NamespaceName),
+                       new XAttribute("http-equiv", "Content-Type"),
+                       new XAttribute("content", "text/html; charset=utf-8"));
 
         headElement.AddFirst(metaContentTypeElement);
       }
     }
 
-    private static void ProcessMobileSpecificMetaElements(XElement headElement, DomSerializationParams domSerializationParams)
+    private static void ProcessMobileSpecificMetaElements(XElement headElement,
+                                                          DomSerializationParams domSerializationParams)
     {
-      XElement metaViewportElement =
+      var metaViewportElement =
         (from metaElement in headElement.GetChildrenByTagName("meta")
          where "viewport".Equals(metaElement.GetAttributeValue("name", ""), StringComparison.OrdinalIgnoreCase)
          select metaElement).FirstOrDefault();
 
       // remove meta 'viewport' element if present
-      if (metaViewportElement != null)
-      {
-        metaViewportElement.Remove();
-      }
+      metaViewportElement?.Remove();
 
-      XElement metaHandheldFriendlyElement =
+      var metaHandheldFriendlyElement =
         (from metaElement in headElement.GetChildrenByTagName("meta")
          where "HandheldFriendly".Equals(metaElement.GetAttributeValue("name", ""), StringComparison.OrdinalIgnoreCase)
          select metaElement).FirstOrDefault();
 
       // remove meta 'HandheldFriendly' element if present
-      if (metaHandheldFriendlyElement != null)
-      {
-        metaHandheldFriendlyElement.Remove();
-      }
+      metaHandheldFriendlyElement?.Remove();
 
       if (!domSerializationParams.DontIncludeMobileSpecificMetaElements)
       {
         // add <meta name="HandheldFriendly" ... /> element
         metaHandheldFriendlyElement = new XElement(
-          XName.Get("meta", headElement.Name != null ? (headElement.Name.NamespaceName ?? "") : ""),
-          new XAttribute("name", "HandheldFriendly"),
-          new XAttribute("content", "true"));
+                                                   XName.Get("meta",
+                                                             headElement.Name.NamespaceName),
+                                                   new XAttribute("name", "HandheldFriendly"),
+                                                   new XAttribute("content", "true"));
 
         headElement.AddFirst(metaHandheldFriendlyElement);
       }
@@ -164,22 +155,20 @@ namespace NReadability
     {
       if (!domSerializationParams.DontIncludeGeneratorMetaElement)
       {
-        XElement metaGeneratorElement =
+        var metaGeneratorElement =
           (from metaElement in headElement.GetChildrenByTagName("meta")
            where "Generator".Equals(metaElement.GetAttributeValue("name", ""), StringComparison.OrdinalIgnoreCase)
            select metaElement).FirstOrDefault();
 
         // remove meta 'generator' element if present
-        if (metaGeneratorElement != null)
-        {
-          metaGeneratorElement.Remove();
-        }
+        metaGeneratorElement?.Remove();
 
         // add <meta name="Generator" ... /> element
         metaGeneratorElement = new XElement(
-          XName.Get("meta", headElement.Name != null ? (headElement.Name.NamespaceName ?? "") : ""),
-          new XAttribute("name", "Generator"),
-          new XAttribute("content", Consts.NReadabilityFullName));
+                                            XName.Get("meta",
+                                                      headElement.Name.NamespaceName),
+                                            new XAttribute("name", "Generator"),
+                                            new XAttribute("content", Consts.NReadabilityFullName));
 
         headElement.AddFirst(metaGeneratorElement);
       }

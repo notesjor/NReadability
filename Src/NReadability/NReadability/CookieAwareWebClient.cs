@@ -20,13 +20,9 @@ namespace NReadability
 
     protected override WebRequest GetWebRequest(Uri address)
     {
-      WebRequest webRequest = base.GetWebRequest(address);
-      HttpWebRequest httpWebRequest = webRequest as HttpWebRequest;
+      var webRequest = base.GetWebRequest(address);
 
-      if (httpWebRequest != null)
-      {
-        httpWebRequest.CookieContainer = _cookieContainer;
-      }
+      if (webRequest is HttpWebRequest httpWebRequest) httpWebRequest.CookieContainer = _cookieContainer;
 
       return webRequest;
     }

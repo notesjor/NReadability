@@ -32,63 +32,35 @@ namespace NReadability
 
     public static XElement GetBody(this XDocument document)
     {
-      if (document == null)
-      {
-        throw new ArgumentNullException("document");
-      }
+      if (document == null) throw new ArgumentNullException(nameof(document));
 
       var documentRoot = document.Root;
 
-      if (documentRoot == null)
-      {
-        return null;
-      }
-
-      return documentRoot.GetElementsByTagName("body").FirstOrDefault();
+      return documentRoot?.GetElementsByTagName("body").FirstOrDefault();
     }
 
     public static string GetTitle(this XDocument document)
     {
-      if (document == null)
-      {
-        throw new ArgumentNullException("document");
-      }
+      if (document == null) throw new ArgumentNullException(nameof(document));
 
       var documentRoot = document.Root;
 
-      if (documentRoot == null)
-      {
-        return null;
-      }
+      if (documentRoot == null) return null;
 
       var headElement = documentRoot.GetElementsByTagName("head").FirstOrDefault();
 
-      if (headElement == null)
-      {
-        return "";
-      }
+      var titleElement = headElement?.GetChildrenByTagName("title").FirstOrDefault();
 
-      var titleElement = headElement.GetChildrenByTagName("title").FirstOrDefault();
+      if (titleElement == null) return "";
 
-      if (titleElement == null)
-      {
-        return "";
-      }
-
-      return (titleElement.Value ?? "").Trim();
+      return titleElement.Value.Trim();
     }
 
     public static XElement GetElementById(this XDocument document, string id)
     {
-      if (document == null)
-      {
-        throw new ArgumentNullException("document");
-      }
+      if (document == null) throw new ArgumentNullException(nameof(document));
 
-      if (string.IsNullOrEmpty(id))
-      {
-        throw new ArgumentNullException("id");
-      }
+      if (string.IsNullOrEmpty(id)) throw new ArgumentNullException(nameof(id));
 
       return
         (from element in document.Descendants()
@@ -133,43 +105,28 @@ namespace NReadability
 
     public static string GetAttributeValue(this XElement element, string attributeName, string defaultValue)
     {
-      if (element == null)
-      {
-        throw new ArgumentNullException("element");
-      }
+      if (element == null) throw new ArgumentNullException(nameof(element));
 
-      if (string.IsNullOrEmpty(attributeName))
-      {
-        throw new ArgumentNullException("attributeName");
-      }
+      if (string.IsNullOrEmpty(attributeName)) throw new ArgumentNullException(nameof(attributeName));
 
       var attribute = element.Attribute(attributeName);
 
       return attribute != null
-               ? (attribute.Value ?? defaultValue)
+               ? attribute.Value
                : defaultValue;
     }
 
     public static void SetAttributeValue(this XElement element, string attributeName, string value)
     {
-      if (element == null)
-      {
-        throw new ArgumentNullException("element");
-      }
+      if (element == null) throw new ArgumentNullException(nameof(element));
 
-      if (string.IsNullOrEmpty(attributeName))
-      {
-        throw new ArgumentNullException("attributeName");
-      }
+      if (string.IsNullOrEmpty(attributeName)) throw new ArgumentNullException(nameof(attributeName));
 
       if (value == null)
       {
         var attribute = element.Attribute(attributeName);
 
-        if (attribute != null)
-        {
-          attribute.Remove();
-        }
+        attribute?.Remove();
       }
       else
       {
@@ -179,87 +136,57 @@ namespace NReadability
 
     public static string GetAttributesString(this XElement element, string separator)
     {
-      if (element == null)
-      {
-        throw new ArgumentNullException("element");
-      }
+      if (element == null) throw new ArgumentNullException(nameof(element));
 
-      if (separator == null)
-      {
-        throw new ArgumentNullException("separator");
-      }
+      if (separator == null) throw new ArgumentNullException(nameof(separator));
 
       var resultSb = new StringBuilder();
-      bool isFirst = true;
+      var isFirst = true;
 
       element.Attributes().Aggregate(
-        resultSb,
-        (sb, attribute) =>
-        {
-          string attributeValue = attribute.Value;
+                                     resultSb,
+                                     (sb, attribute) =>
+                                     {
+                                       var attributeValue = attribute.Value;
 
-          if (string.IsNullOrEmpty(attributeValue))
-          {
-            return sb;
-          }
+                                       if (string.IsNullOrEmpty(attributeValue)) return sb;
 
-          if (!isFirst)
-          {
-            resultSb.Append(separator);
-          }
+                                       if (!isFirst) resultSb.Append(separator);
 
-          isFirst = false;
+                                       isFirst = false;
 
-          sb.Append(attribute.Value);
+                                       sb.Append(attribute.Value);
 
-          return sb;
-        });
+                                       return sb;
+                                     });
 
       return resultSb.ToString();
     }
 
     public static string GetInnerHtml(this XContainer container)
     {
-      if (container == null)
-      {
-        throw new ArgumentNullException("container");
-      }
+      if (container == null) throw new ArgumentNullException(nameof(container));
 
       var resultSb = new StringBuilder();
 
-      foreach (var childNode in container.Nodes())
-      {
-        resultSb.Append(childNode.ToString(SaveOptions.DisableFormatting));
-      }
+      foreach (var childNode in container.Nodes()) resultSb.Append(childNode.ToString(SaveOptions.DisableFormatting));
 
       return resultSb.ToString();
     }
 
     public static void SetInnerHtml(this XElement element, string html)
     {
-      if (element == null)
-      {
-        throw new ArgumentNullException("element");
-      }
+      if (element == null) throw new ArgumentNullException(nameof(element));
 
-      if (html == null)
-      {
-        throw new ArgumentNullException("html");
-      }
+      if (html == null) throw new ArgumentNullException(nameof(html));
 
       element.RemoveAll();
 
       var tmpElement = new SgmlDomBuilder().BuildDocument(html);
 
-      if (tmpElement.Root == null)
-      {
-        return;
-      }
+      if (tmpElement.Root == null) return;
 
-      foreach (var node in tmpElement.Root.Nodes())
-      {
-        element.Add(node);
-      }
+      foreach (var node in tmpElement.Root.Nodes()) element.Add(node);
     }
 
     #endregion
@@ -268,34 +195,22 @@ namespace NReadability
 
     public static IEnumerable<XElement> GetElementsByTagName(this XContainer container, string tagName)
     {
-      if (container == null)
-      {
-        throw new ArgumentNullException("container");
-      }
+      if (container == null) throw new ArgumentNullException(nameof(container));
 
-      if (string.IsNullOrEmpty(tagName))
-      {
-        throw new ArgumentNullException("tagName");
-      }
+      if (string.IsNullOrEmpty(tagName)) throw new ArgumentNullException(nameof(tagName));
 
       return container.Descendants()
-        .Where(e => tagName.Equals(e.Name.LocalName, StringComparison.OrdinalIgnoreCase));
+                      .Where(e => tagName.Equals(e.Name.LocalName, StringComparison.OrdinalIgnoreCase));
     }
 
     public static IEnumerable<XElement> GetChildrenByTagName(this XContainer container, string tagName)
     {
-      if (container == null)
-      {
-        throw new ArgumentNullException("container");
-      }
+      if (container == null) throw new ArgumentNullException(nameof(container));
 
-      if (string.IsNullOrEmpty(tagName))
-      {
-        throw new ArgumentNullException("tagName");
-      }
+      if (string.IsNullOrEmpty(tagName)) throw new ArgumentNullException(nameof(tagName));
 
       return container.Elements()
-        .Where(e => e.Name != null && tagName.Equals(e.Name.LocalName, StringComparison.OrdinalIgnoreCase));
+                      .Where(e => tagName.Equals(e.Name.LocalName, StringComparison.OrdinalIgnoreCase));
     }
 
     #endregion

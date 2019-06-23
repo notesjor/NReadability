@@ -31,12 +31,7 @@ namespace NReadability
 
     public ElementsTraverser(Action<XElement> elementVisitor)
     {
-      if (elementVisitor == null)
-      {
-        throw new ArgumentNullException("elementVisitor");
-      }
-
-      _elementVisitor = elementVisitor;
+      _elementVisitor = elementVisitor ?? throw new ArgumentNullException(nameof(elementVisitor));
     }
 
     #endregion
@@ -52,11 +47,8 @@ namespace NReadability
       while (childNode != null)
       {
         var nextChildNode = childNode.NextNode;
-        
-        if (childNode is XElement)
-        {
-          Traverse((XElement)childNode);
-        }
+
+        if (childNode is XElement node) Traverse(node);
 
         childNode = nextChildNode;
       }

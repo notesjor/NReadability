@@ -8,9 +8,9 @@ namespace NReadability
       TitleExtracted = titleExtracted;
     }
 
-    public bool ContentExtracted { get; private set; }
+    public bool ContentExtracted { get; }
 
-    public bool TitleExtracted { get; private set; }
+    public bool TitleExtracted { get; }
 
     public string ExtractedContent { get; set; }
 

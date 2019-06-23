@@ -27,46 +27,59 @@ using System.Xml.Linq;
 namespace NReadability
 {
   /// <summary>
-  /// A class that extracts main content from a url.
+  ///   A class that extracts main content from a url.
   /// </summary>
   public class NReadabilityWebTranscoder
   {
-    private const int _MaxPages = 30;
-    private const string _PageIdPrefix = "readability-page-";
+    private const int _maxPages = 30;
+    private const string _pageIdPrefix = "readability-page-";
 
     private static readonly Func<int, string> _DefaultPageSeparatorBuilder =
-      pageNumber => string.Format("<p class='page-separator' title='Page {0}'>&sect;</p>", pageNumber);
+      pageNumber => $"<p class='page-separator' title='Page {pageNumber}'>&sect;</p>";
+
+    private readonly SgmlDomSerializer _sgmlDomSerializer;
 
     private readonly NReadabilityTranscoder _transcoder;
     private readonly IUrlFetcher _urlFetcher;
-    private readonly SgmlDomSerializer _sgmlDomSerializer;
-
-    private Func<int, string> _pageSeparatorBuilder;
-    private List<string> _parsedPages;
     private int _curPageNum;
+
+    private List<string> _parsedPages;
+
+    #region Properties
+
+    /// <summary>
+    ///   A function which, given a current page number, constructs the HTML which will be used as a page separator.
+    /// </summary>
+    public Func<int, string> PageSeparatorBuilder { get; set; }
+
+    #endregion
 
     #region Constructor(s)
 
     /// <summary>
-    ///  Initializes a new instance of NReadabilityWebTranscoder.
-    ///  Allows passing in custom-constructed NReadabilityTranscoder,
-    ///  and a custom IUrlFetcher.
+    ///   Initializes a new instance of NReadabilityWebTranscoder.
+    ///   Allows passing in custom-constructed NReadabilityTranscoder,
+    ///   and a custom IUrlFetcher.
     /// </summary>
     /// <param name="transcoder">A NReadabilityTranscoder.</param>
     /// <param name="urlFetcher">IFetcher instance to download content.</param>
-    /// <param name="pageSeparatorBuilder">A function that creates a HTML fragment for page separator. It takes the page number as an argument.</param>
-    public NReadabilityWebTranscoder(NReadabilityTranscoder transcoder, IUrlFetcher urlFetcher, Func<int, string> pageSeparatorBuilder)
+    /// <param name="pageSeparatorBuilder">
+    ///   A function that creates a HTML fragment for page separator. It takes the page number
+    ///   as an argument.
+    /// </param>
+    public NReadabilityWebTranscoder(NReadabilityTranscoder transcoder, IUrlFetcher urlFetcher,
+                                     Func<int, string> pageSeparatorBuilder)
     {
       _transcoder = transcoder;
       _urlFetcher = urlFetcher;
       _sgmlDomSerializer = new SgmlDomSerializer();
-      _pageSeparatorBuilder = pageSeparatorBuilder;
+      PageSeparatorBuilder = pageSeparatorBuilder;
     }
 
     /// <summary>
-    ///  Initializes a new instance of NReadabilityWebTranscoder.
-    ///  Allows passing in custom-constructed NReadabilityTranscoder,
-    ///  and a custom IUrlFetcher.
+    ///   Initializes a new instance of NReadabilityWebTranscoder.
+    ///   Allows passing in custom-constructed NReadabilityTranscoder,
+    ///   and a custom IUrlFetcher.
     /// </summary>
     /// <param name="transcoder">A NReadabilityTranscoder.</param>
     /// <param name="urlFetcher">IFetcher instance to download content.</param>
@@ -76,8 +89,8 @@ namespace NReadability
     }
 
     /// <summary>
-    /// Initializes a new instance of NReadabilityWebTranscoder.
-    /// Allows passing in custom-constructed NReadabilityTranscoder.
+    ///   Initializes a new instance of NReadabilityWebTranscoder.
+    ///   Allows passing in custom-constructed NReadabilityTranscoder.
     /// </summary>
     /// <param name="transcoder">A NReadailityTranscoder.</param>
     public NReadabilityWebTranscoder(NReadabilityTranscoder transcoder)
@@ -86,7 +99,7 @@ namespace NReadability
     }
 
     /// <summary>
-    /// Initializes a new instance of NReadabilityWebTranscoder.
+    ///   Initializes a new instance of NReadabilityWebTranscoder.
     /// </summary>
     public NReadabilityWebTranscoder()
       : this(new NReadabilityTranscoder())
@@ -98,43 +111,37 @@ namespace NReadability
     #region Public methods
 
     /// <summary>
-    /// Extracts article content from an HTML page at the given URL.
+    ///   Extracts article content from an HTML page at the given URL.
     /// </summary>
     /// <param name="webTranscodingInput">An object containing input parameters, i.a. URL of the page to be processed.</param>
     /// <returns>An object containing transcoding result, i.a. extracted content and title.</returns>
     public WebTranscodingResult Transcode(WebTranscodingInput webTranscodingInput)
     {
-      if (webTranscodingInput == null)
-      {
-        throw new ArgumentNullException("webTranscodingInput");
-      }
+      if (webTranscodingInput == null) throw new ArgumentNullException(nameof(webTranscodingInput));
 
-      bool contentExtracted;
-      string extractedTitle;
-
-      string extractedContent =
+      var extractedContent =
         DoTranscode(
-          webTranscodingInput.Url,
-          webTranscodingInput.DomSerializationParams,
-          out contentExtracted,
-          out extractedTitle);
+                    webTranscodingInput.Url,
+                    webTranscodingInput.DomSerializationParams,
+                    out var contentExtracted,
+                    out var extractedTitle);
 
-      bool titleExtracted = !string.IsNullOrEmpty(extractedTitle);
+      var titleExtracted = !string.IsNullOrEmpty(extractedTitle);
 
       return
         new WebTranscodingResult(contentExtracted, titleExtracted)
-          {
-            ExtractedContent = extractedContent,
-            ExtractedTitle = extractedTitle,
-          };
+        {
+          ExtractedContent = extractedContent,
+          ExtractedTitle = extractedTitle
+        };
     }
 
     /// <summary>
-    /// Extracts main article content from a HTML web page.
-    /// </summary>    
+    ///   Extracts main article content from a HTML web page.
+    /// </summary>
     /// <param name="url">Url from which the content was downloaded. Used to resolve relative urls. Can be null.</param>
     /// <param name="domSerializationParams">Contains parameters that modify the behaviour of the output serialization.</param>
-    /// <param name="mainContentExtracted">Determines whether the content has been extracted (if the article is not empty).</param>    
+    /// <param name="mainContentExtracted">Determines whether the content has been extracted (if the article is not empty).</param>
     /// <returns>HTML markup containing extracted article content.</returns>
     [Obsolete("Use TranscodingResult Transcode(TranscodingInput) method.")]
     public string Transcode(string url, DomSerializationParams domSerializationParams, out bool mainContentExtracted)
@@ -145,10 +152,10 @@ namespace NReadability
     }
 
     /// <summary>
-    /// Extracts main article content from a HTML web page using default DomSerializationParams.
-    /// </summary>    
+    ///   Extracts main article content from a HTML web page using default DomSerializationParams.
+    /// </summary>
     /// <param name="url">Url from which the content was downloaded. Used to resolve relative urls. Can be null.</param>
-    /// <param name="mainContentExtracted">Determines whether the content has been extracted (if the article is not empty).</param>    
+    /// <param name="mainContentExtracted">Determines whether the content has been extracted (if the article is not empty).</param>
     /// <returns>HTML markup containing extracted article content.</returns>
     [Obsolete("Use TranscodingResult Transcode(TranscodingInput) method.")]
     public string Transcode(string url, out bool mainContentExtracted)
@@ -160,15 +167,15 @@ namespace NReadability
 
     #region Private helper methods
 
-    private string DoTranscode(string url, DomSerializationParams domSerializationParams, out bool mainContentExtracted, out string extractedTitle)
+    private string DoTranscode(string url, DomSerializationParams domSerializationParams, out bool mainContentExtracted,
+                               out string extractedTitle)
     {
       _curPageNum = 1;
-      _parsedPages = new List<string>();
+      _parsedPages = new List<string> {Regex.Replace(url, @"\/$", "")};
 
       /* Make sure this document is added to the list of parsed pages first, so we don't double up on the first page */
-      _parsedPages.Add(Regex.Replace(url, @"\/$", ""));
 
-      string htmlContent = _urlFetcher.Fetch(url);
+      var htmlContent = _urlFetcher.Fetch(url);
 
       /* If we can't fetch the page, then exit. */
       if (string.IsNullOrEmpty(htmlContent))
@@ -180,22 +187,18 @@ namespace NReadability
       }
 
       /* Attempt to transcode the page */
-      XDocument document;
-      string nextPage;
 
-      document = _transcoder.TranscodeToXml(htmlContent, url, out mainContentExtracted, out extractedTitle, out nextPage);
+      var document = _transcoder.TranscodeToXml(htmlContent, url, out mainContentExtracted, out extractedTitle,
+                                                      out var nextPage);
 
-      if (nextPage != null)
-      {
-        AppendNextPage(document, nextPage);
-      }
+      if (nextPage != null) AppendNextPage(document, nextPage);
 
       /* If there are multiple pages, rename the first content div */
       if (_curPageNum > 1)
       {
         var articleContainer = document.GetElementById("readInner").Element("div");
 
-        articleContainer.SetId(_PageIdPrefix + "1");
+        articleContainer.SetId(_pageIdPrefix + "1");
         articleContainer.SetClass("page");
       }
 
@@ -203,48 +206,40 @@ namespace NReadability
     }
 
     /// <summary>
-    /// Recursively appends subsequent pages of a multipage article.
+    ///   Recursively appends subsequent pages of a multipage article.
     /// </summary>
     /// <param name="document">Compiled document</param>
     /// <param name="url">Url of current page</param>
     private void AppendNextPage(XDocument document, string url)
-    {      
+    {
       _curPageNum++;
 
       var contentDiv = document.GetElementById("readInner");
-          
-      if (_curPageNum > _MaxPages) 
+
+      if (_curPageNum > _maxPages)
       {
         url = "<div style='text-align: center'><a href='" + url + "'>View Next Page</a></div>";
         contentDiv.Add(XDocument.Parse(url));
         return;
       }
 
-      string nextContent = _urlFetcher.Fetch(url);
+      var nextContent = _urlFetcher.Fetch(url);
 
-      if (string.IsNullOrEmpty(nextContent))
-      {
-        return;
-      }
+      if (string.IsNullOrEmpty(nextContent)) return;
 
-      bool mainContentExtracted;
-      string extractedTitle;
-      string nextPageLink;
-      var nextDocument = _transcoder.TranscodeToXml(nextContent, url, out mainContentExtracted, out extractedTitle, out nextPageLink);
+      var nextDocument =
+        _transcoder.TranscodeToXml(nextContent, url, out _, out _, out var nextPageLink);
       var nextInner = nextDocument.GetElementById("readInner");
       var header = nextInner.Element("h1");
 
-      if (header != null)
-      {
-        header.Remove();
-      }
+      header?.Remove();
 
       /*
        * Anti-duplicate mechanism. Essentially, get the first paragraph of our new page.
        * Compare it against all of the the previous document's we've gotten. If the previous
        * document contains exactly the innerHTML of this first paragraph, it's probably a duplicate.
       */
-      var firstP = nextInner.GetElementsByTagName("p").Count() > 0 ? nextInner.GetElementsByTagName("p").First() : null;
+      var firstP = nextInner.GetElementsByTagName("p").Any() ? nextInner.GetElementsByTagName("p").First() : null;
 
       if (firstP != null && firstP.GetInnerHtml().Length > 100)
       {
@@ -255,10 +250,11 @@ namespace NReadability
         //innerHtml = Regex.Replace(innerHtml, @"\s+", "");
 
         // TODO: This test could probably be improved to compare the actual markup.
-        string existingContent = contentDiv.Value;
-        string innerHtml = firstP.Value;
+        var existingContent = contentDiv.Value;
+        var innerHtml = firstP.Value;
 
-        if (!string.IsNullOrEmpty(existingContent) && !string.IsNullOrEmpty(innerHtml) && existingContent.IndexOf(innerHtml, StringComparison.OrdinalIgnoreCase) != -1)
+        if (!string.IsNullOrEmpty(existingContent) && !string.IsNullOrEmpty(innerHtml) &&
+            existingContent.IndexOf(innerHtml, StringComparison.OrdinalIgnoreCase) != -1)
         {
           _parsedPages.Add(url);
           return;
@@ -268,35 +264,17 @@ namespace NReadability
       /* Add the content to the existing html */
       var nextDiv = new XElement("div");
 
-      if (_pageSeparatorBuilder != null)
-      {
-        nextDiv.SetInnerHtml(_pageSeparatorBuilder(_curPageNum));
-      }
+      if (PageSeparatorBuilder != null) nextDiv.SetInnerHtml(PageSeparatorBuilder(_curPageNum));
 
-      nextDiv.SetId(_PageIdPrefix + _curPageNum);
-      nextDiv.SetClass("page");      
+      nextDiv.SetId(_pageIdPrefix + _curPageNum);
+      nextDiv.SetClass("page");
       nextDiv.Add(nextInner.Nodes());
       contentDiv.Add(nextDiv);
       _parsedPages.Add(url);
 
       /* Only continue if we haven't already seen the next page page */
       if (!string.IsNullOrEmpty(nextPageLink) && !_parsedPages.Contains(nextPageLink))
-      {
         AppendNextPage(document, nextPageLink);
-      }
-    }
-
-    #endregion
-
-    #region Properties
-
-    /// <summary>
-    /// A function which, given a current page number, constructs the HTML which will be used as a page separator.
-    /// </summary>
-    public Func<int, string> PageSeparatorBuilder
-    {
-      get { return _pageSeparatorBuilder; }
-      set { _pageSeparatorBuilder = value; }
     }
 
     #endregion

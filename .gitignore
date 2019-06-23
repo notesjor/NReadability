@@ -37,3 +37,4 @@
 /Src/NReadability/NReadability.sln.DotSettings.user
 *.suo
 Src/NReadability/NReadability.sln.DotSettings
+*.snk

@@ -19,51 +19,41 @@
  */
 
 using System;
+using System.IO;
 using System.Text;
-using System.Text.RegularExpressions;
 using System.Xml;
 using System.Xml.Linq;
 using Sgml;
-using System.IO;
 
 namespace NReadability
 {
   /// <summary>
-  /// A class for constructing a DOM from HTML markup.
+  ///   A class for constructing a DOM from HTML markup.
   /// </summary>
   public class SgmlDomBuilder
   {
     #region Public methods
 
     /// <summary>
-    /// Constructs a DOM (System.Xml.Linq.XDocument) from HTML markup.
+    ///   Constructs a DOM (System.Xml.Linq.XDocument) from HTML markup.
     /// </summary>
     /// <param name="htmlContent">HTML markup from which the DOM is to be constructed.</param>
     /// <returns>System.Linq.Xml.XDocument instance which is a DOM of the provided HTML markup.</returns>
     public XDocument BuildDocument(string htmlContent)
     {
-      if (htmlContent == null)
-      {
-        throw new ArgumentNullException("htmlContent");
-      }
+      if (htmlContent == null) throw new ArgumentNullException(nameof(htmlContent));
 
-      if (htmlContent.Trim().Length == 0)
-      {
-        return new XDocument();
-      }
+      if (htmlContent.Trim().Length == 0) return new XDocument();
 
       // "trim end" htmlContent to ...</html>$ (codinghorror.com puts some scripts after the </html> - sic!)
       const string htmlEnd = "</html";
-      int indexOfHtmlEnd = htmlContent.LastIndexOf(htmlEnd);
+      var indexOfHtmlEnd = htmlContent.LastIndexOf(htmlEnd, StringComparison.Ordinal);
 
       if (indexOfHtmlEnd != -1)
       {
-        int indexOfHtmlEndBracket = htmlContent.IndexOf('>', indexOfHtmlEnd);
+        var indexOfHtmlEndBracket = htmlContent.IndexOf('>', indexOfHtmlEnd);
 
-        if (indexOfHtmlEndBracket != -1)
-        {
-          htmlContent = htmlContent.Substring(0, indexOfHtmlEndBracket + 1);
-        }
+        if (indexOfHtmlEndBracket != -1) htmlContent = htmlContent.Substring(0, indexOfHtmlEndBracket + 1);
       }
 
       XDocument document;
@@ -77,10 +67,7 @@ namespace NReadability
         // sometimes SgmlReader doesn't handle <script> tags well and XDocument.Load() throws,
         // so we can retry with the html content with <script> tags stripped off
 
-        if (!exc.Message.Contains("EndOfFile"))
-        {
-          throw;
-        }
+        if (!exc.Message.Contains("EndOfFile")) throw;
 
         htmlContent = HtmlUtils.RemoveScriptTags(htmlContent);
 
